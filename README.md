@@ -18,10 +18,9 @@ TCC (version 1.26.0)
 
 # Description
 The R scripts for the below paper.
-The all input data is included.
 
 # Usage
-Download https://github.com/naganolab/DeLTa-Seq. Then, run R, open github with RStudio and execute DeLTa-Seq_Rscript.R
+Download https://github.com/naganolab/DeLTa-Seq and "RSEM_out_UMI" for Fig. 6 from . Then, run R, open github with RStudio and execute DeLTa-Seq_Rscript.R
 
 # Run time
   Roughly, an hour with a normal laptop.
