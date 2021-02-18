@@ -20,7 +20,7 @@ TCC (version 1.26.0)
 The R scripts for the below paper.
 
 # Usage
-Download https://github.com/naganolab/DeLTa-Seq and "RSEM_out_UMI" for Fig. 6 from . Then, run R, open github with RStudio and execute DeLTa-Seq_Rscript.R
+Download https://github.com/naganolab/DeLTa-Seq and "RSEM_out_UMI" for Fig. 6 from https://drive.google.com/file/d/1Nisem_Q4wLCvgROHxTS6_9yNRKRNLQWX/view?usp=sharing. Then, run R, open github with RStudio and execute DeLTa-Seq_Rscript.R
 
 # Run time
   Roughly, an hour with a normal laptop.
