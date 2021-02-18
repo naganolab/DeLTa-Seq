@@ -1,0 +1,8 @@
+Experiment: New Experiment (1)  Selected Filter: SYBR Green I / HRM Dye (465-510)							
+Include	Color	Pos	Name	Cp	Concentration	Standard	Status
+TRUE	255	A8	DTT 100 mM	18.36		0	
+TRUE	255	B8	DTT 100 mM	17.89		0	
+TRUE	255	C8	DTT 100 mM	18.23		0	
+TRUE	255	D8	NC	20.48		0	
+TRUE	255	E8	NC	21.5		0	
+TRUE	255	F8	NC	20.69		0	

@@ -1,0 +1,33 @@
+condition	Color	Pos	Name	Cp	Concentration	Standard
+RT(-)	255	A13	Sample 13	28.51		0
+RT(-)	255	A15	Sample 15	28.32		0
+RT(-)	255	A17	Sample 17	28.49		0
+RT(-)	255	A19	Sample 19	28.49		0
+DTT 5 mM	255	C13	Sample 61	24.07		0
+DTT 5 mM	255	C15	Sample 63	23.64		0
+DTT 5 mM	255	C17	Sample 65	23.62		0
+DTT 5 mM	255	C19	Sample 67	23.71		0
+DTT 10 mM	255	A21	Sample 21	24.2		0
+DTT 10 mM	255	A23	Sample 23	23.99		0
+DTT 10 mM	255	I21	Sample 213	24.11		0
+DTT 10 mM	255	I23	Sample 215	23.9		0
+DTT 100 mM	255	E13	Sample 109	24.23		0
+DTT 100 mM	255	E15	Sample 111	24.24		0
+DTT 100 mM	255	E17	Sample 113	24.07		0
+DTT 100 mM	255	E19	Sample 115	24.09		0
+2Me 1%	255	K13	Sample 253	23.75		0
+2Me 1%	255	K15	Sample 255	23.62		0
+2Me 1%	255	K17	Sample 257	23.61		0
+2Me 1%	255	K19	Sample 259	23.48		0
+2Me 2.5%	255	A11	Sample 11	23.47666667		0
+2Me 2.5%	255	C11	Sample 59	22.33666667		0
+2Me 2.5%	255	E11	Sample 107	23.49666667		0
+2Me 2.5%	255	G11	Sample 155	23.01666667		0
+2Me 5%	255	M13	Sample 301	24.84		0
+2Me 5%	255	M15	Sample 303	24.6		0
+2Me 5%	255	M17	Sample 305	24.32		0
+2Me 5%	255	M19	Sample 307	24.2		0
+2Me 10%	255	O13	Sample 349	25.89		0
+2Me 10%	255	O15	Sample 351	26.3		0
+2Me 10%		O17	Sample 353	26.21		0
+2Me 10%		O19	Sample 355	26.06		0
