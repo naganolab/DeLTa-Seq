@@ -1303,4 +1303,440 @@ t =1000
 mat = matrix(c(nrow(fai), sum(fai$V2<t), length(DEG.high), sum(fai[DEG.high,]$V2<t)), byrow = T, nco = 2)
 fisher.test(mat)
 
+#### Fig. 6
+# Load count data
+list = list.dirs("20210914_RNAseq_AthSB_UMI_considered/")
+list.Tra = list[grep("_6_",list)]
+list.Be = list[grep("_7_",list)]
+gnl = read.table("20210914_RNAseq_AthSB_UMI_considered/AthSB_6_g01_g08/genes.list") 
+
+rawcnt = NULL
+sample = NULL
+for(Dir in list.Tra){
+  files = list.files(Dir)
+  files = files[grep("Index",files)]
+  for (file in files) {
+    tmp = read.table(sprintf("%s/%s",Dir,file),sep = "\t",header = T)
+    rawcnt = cbind(rawcnt,tmp$expected_count)
+    sample = c(sample,sprintf("%s-%s",strsplit(Dir,"/")[[1]][3], gsub(".genes.results","",file)))
+  }
+}
+colnames(rawcnt) = sample
+rownames(rawcnt) = gnl[,1]
+rawcnt.Tra = rawcnt
+
+rawcnt = NULL
+sample = NULL
+for(Dir in list.Be){
+  files = list.files(Dir)
+  files = files[grep("Index",files)]
+  for (file in files) {
+    tmp = read.table(sprintf("%s/%s",Dir,file),sep = "\t",header = T)
+    rawcnt = cbind(rawcnt,tmp$expected_count)
+    sample = c(sample,sprintf("%s-%s",strsplit(Dir,"/")[[1]][3], gsub(".genes.results","",file)))
+  }
+}
+colnames(rawcnt) = sample
+rownames(rawcnt) = gnl[,1]
+rawcnt.Be = rawcnt
+
+# Load gene description
+load("/mnt/hdd/hdd/data/species/Araport11/190907_Araport11_genes.201606.transcript.rep_ERCC_Virus7457_GFP_GUS.des")
+# Prep. sample attribute
+at.Tra = data.frame("ID" = colnames(rawcnt.Tra),"Temperature" = rep(seq(10,30,2),each = 96),"Chemical" = rep(c(rep("JA",32),rep("SA",32),rep("EtOH",32)),11),"Target"="Tradict")
+at.Be = data.frame("ID" = colnames(rawcnt.Tra),"Temperature" = rep(seq(10,30,2),each = 96),"Chemical" = rep(c(rep("JA",32),rep("SA",32),rep("EtOH",32)),11),"Target"="Betsuyaku")
+
+# Load Target gene list
+library(openxlsx)
+target.Tra = unique(read.xlsx("200711_primers_tradict_100genes.xlsx")[,2])
+tmp = NULL
+for(gn in target.Tra){
+  tmp = c(tmp,rownames(rawcnt.Tra)[grep(gn,rownames(rawcnt.Tra))])
+}
+target.Tra = tmp
+
+target.Be = unique(read.xlsx("200817_primers_betsu_98genes.xlsx")[,2])
+tmp = NULL
+for(gn in target.Be){
+  tmp = c(tmp,rownames(rawcnt.Be)[grep(gn,rownames(rawcnt.Be))])
+}
+target.Be = tmp
+
+# seurat
+library(Seurat)
+library(ggplot2)
+seurat.Tra = CreateSeuratObject(rawcnt.Tra[target.Tra,], project = "Tradict")
+seurat.Tra@meta.data$Temperature = at.Tra$Temperature
+seurat.Tra@meta.data$Chemical = at.Tra$Chemical
+seurat.Tra = NormalizeData(seurat.Tra,scale.factor = 10^6)
+seurat.Tra = ScaleData(seurat.Tra,features = target.Tra)
+seurat.Tra = FindVariableFeatures(seurat.Tra)
+# seurat.Tra = RunPCA(seurat.Tra,verbose = F)
+# seurat.Tra = FindNeighbors(seurat.Tra)
+# seurat.Tra = RunUMAP(seurat.Tra,dims = 1:50)
+# Idents(seurat.Tra) = seurat.Tra@meta.data$Chemical
+# markers.Tra.chemical = FindAllMarkers(seurat.Tra,logfc.threshold = log2(1.5),only.pos = T)
+# seurat.Tra = FindClusters(seurat.Tra)
+# markers.Be = FindAllMarkers(seurat.Tra,logfc.threshold = log2(1.5),only.pos = T)
+
+seurat.Be = CreateSeuratObject(rawcnt.Be[target.Be,], project = "Bedict")
+seurat.Be@meta.data$Temperature = at.Be$Temperature
+seurat.Be@meta.data$Chemical = at.Be$Chemical
+seurat.Be = NormalizeData(seurat.Be,scale.factor = 10^6)
+seurat.Be = ScaleData(seurat.Be,features = target.Be)
+seurat.Be = FindVariableFeatures(seurat.Be)
+# seurat.Be = RunPCA(seurat.Be,verbose = F)
+# seurat.Be = FindNeighbors(seurat.Be)
+# seurat.Be = RunUMAP(seurat.Be,dims = 1:50)
+# Idents(seurat.Be) = seurat.Be@meta.data$Chemical
+# markers.Be.chemical = FindAllMarkers(seurat.Be,logfc.threshold = log2(1.5),only.pos = T)
+# seurat.Be = FindClusters(seurat.Be)
+# markers.Be = FindAllMarkers(seurat.Be,logfc.threshold = log2(1.5),only.pos = T)
+# 
+mean(seurat.Tra@meta.data$nCount_RNA)
+mean(seurat.Be@meta.data$nCount_RNA)
+mean(seurat.Tra@meta.data$nFeature_RNA)
+mean(seurat.Be@meta.data$nFeature_RNA)
+d = dist(seurat.Tra@assays$RNA@scale.data)
+h = hclust(d)
+target.Tra = target.Tra[h$order]
+
+d = dist(seurat.Be@assays$RNA@scale.data)
+h = hclust(d)
+target.Be = target.Be[h$order]
+
+# cors = NULL
+# for(i in 1:50){
+#   cors = c(cors,cor(seurat.Tra$Temperature,seurat.Tra@reductions$pca@cell.embeddings[,i]))
+# }
+# plot(abs(cors),main = "Tradict_tempareture",clab = "PC")
+# 
+# cors = NULL
+# for(i in 1:50){
+#   cors = c(cors,cor(as.numeric(as.factor(seurat.Tra$Chemical)),seurat.Tra@reductions$pca@cell.embeddings[,i]))
+# }
+# plot(abs(cors),main = "Tradict_Chemical",clab = "PC")
+# 
+# cors = NULL
+# for(i in 1:50){
+#   cors = c(cors,cor(seurat.Be$Temperature,seurat.Be@reductions$pca@cell.embeddings[,i]))
+# }
+# plot(abs(cors),main = "Betsuyaku_tempareture",clab = "PC")
+# 
+# cors = NULL
+# for(i in 1:50){
+#   cors = c(cors,cor(as.numeric(as.factor(seurat.Be$Chemical)),seurat.Be@reductions$pca@cell.embeddings[,i]))
+# }
+# plot(abs(cors),main = "Betsuyaku_Chemical",clab = "PC")
+# 
+
+pdf("Tradict.pdf",width = 14,height = 21)
+seurat = seurat.Tra
+markers = markers.Tra.chemical
+g1 = VlnPlot(seurat,features = c("nCount_RNA","nFeature_RNA"),group.by = c("Chemical"))+
+  VlnPlot(seurat,features = c("nCount_RNA"),group.by = c("Temperature"))+
+  VlnPlot(seurat,features = c("nFeature_RNA"),group.by = c("Temperature"))+
+  DimPlot(seurat,reduction = "umap",group.by = c("Chemical"))+
+  FeaturePlot(seurat,reduction = "umap", features  = c("Temperature"))
+g2 = DoHeatmap(seurat,features = target.Tra,group.by = c("Chemical"))
+print(g1)
+print(g2)
+dev.off()
+
+pdf("Betsuyaku.pdf",width = 14,height = 21)
+seurat = seurat.Be
+markers = markers.Be.chemical
+g1 = VlnPlot(seurat,features = c("nCount_RNA","nFeature_RNA"),group.by = c("Chemical"))+
+  VlnPlot(seurat,features = c("nCount_RNA"),group.by = c("Temperature"))+
+  VlnPlot(seurat,features = c("nFeature_RNA"),group.by = c("Temperature"))+
+  DimPlot(seurat,reduction = "umap",group.by = c("Chemical"))+
+  FeaturePlot(seurat,reduction = "umap", features  = c("Temperature"))
+g2 = DoHeatmap(seurat,features = target.Be,group.by = c("Chemical"))
+print(g1)
+print(g2)
+dev.off()
+
+# tukeyHSD
+gnl = unique(c(target.Be,target.Tra))
+exs = as.matrix(rbind(seurat.Be@assays$RNA@data,seurat.Tra@assays$RNA@data))
+tukey = function(i){
+  gn = gnl[i]
+  ex = exs[gn,]
+  if(sum(ex>0)>10){
+    group = sprintf("%s-%s",seurat.Tra@meta.data$Chemical,seurat.Tra@meta.data$Temperature)
+    data = data.frame("ex" = ex, "group" = group)
+    data$group = factor(data$group)
+    res= aov(ex~group,data = data)
+    tuk=glht(res,linfct=mcp(group="Tukey"))
+    cld = cld(tuk, level = 0.05, decreasing = TRUE)
+    save(cld, file = sprintf("tukey_result/%s",gn))
+  }
+}
+
+library(doParallel)
+cores <- detectCores()-1
+cl <- makeCluster(cores)
+registerDoParallel(cl)
+dir.create("tukey_result")
+result <- foreach(i=1:length(gnl), .packages='multcomp') %dopar% {
+  tukey(i)  
+}
+stopCluster(cl)
+
+# ex plot
+pdf("Tradict-explot.pdf",height = 2.5,width = 20)
+fnl = list.files("tukey_result/")
+for(gn in target.Tra){
+  cat(gn,"\n")
+  if(sum(fnl==gn)>0){
+    load(sprintf("tukey_result/%s",gn))
+    data = data.frame("log2rpm" = seurat.Tra@assays$RNA@data[gn,],"Chemical" = seurat.Tra$Chemical, "Temperature" = seurat.Tra$Temperature)
+    label = data.frame("Temperature" = unique(at$Temparature), "log2rpm" = max(data$log2rpm)+1, "Chemical" = unlist(lapply(strsplit(names(cld$mcletters$Letters),"-"), FUN = function(x){return(x[1])})), "label" = cld$mcletters$Letters)
+    g = ggplot(data, aes(x = Temperature,y = log2rpm, fill = Chemical))+
+      geom_violin(aes(group = Temperature))+
+      geom_jitter()+
+      geom_smooth(color = "magenta",se = F)+
+      geom_text(data = label, aes(label = label))+
+      facet_wrap(~Chemical,ncol = 3)+
+      ggtitle(label =  gn,subtitle = des[strsplit(gn,"\\.")[[1]][1],]$ShortDescription)+
+      theme_bw()+
+      NoLegend()
+  } else {
+    data = data.frame("log2rpm" = seurat.Tra@assays$RNA@data[gn,],"Chemical" = seurat.Tra$Chemical, "Temperature" = seurat.Tra$Temperature)
+    g = ggplot(data, aes(x = Temperature,y = log2rpm, fill = Chemical))+
+      geom_violin(aes(group = Temperature))+
+      geom_jitter()+
+      geom_smooth(color = "magenta",se = F)+
+      facet_wrap(~Chemical,ncol = 3)+
+      ggtitle(label =  gn,subtitle = des[strsplit(gn,"\\.")[[1]][1],]$ShortDescription)+
+      theme_bw()+
+      NoLegend()
+  }
+  print(g)
+}
+dev.off()
+
+pdf("Betsuyaku-explot.pdf",height = 2.5,width = 20)
+for(gn in target.Be){
+  cat(gn,"\n")
+  if(sum(fnl==gn)>0){
+    load(sprintf("tukey_result/%s",gn))
+    data = data.frame("log2rpm" = seurat.Be@assays$RNA@data[gn,],"Chemical" = seurat.Be$Chemical, "Temperature" = seurat.Be$Temperature)
+    label = data.frame("Temperature" = unique(at$Temparature), "log2rpm" = max(data$log2rpm)+1, "Chemical" = unlist(lapply(strsplit(names(cld$mcletters$Letters),"-"), FUN = function(x){return(x[1])})), "label" = cld$mcletters$Letters)
+    g = ggplot(data, aes(x = Temperature,y = log2rpm, fill = Chemical))+
+      geom_violin(aes(group = Temperature))+
+      geom_jitter()+
+      geom_smooth(color = "magenta",se = F)+
+      geom_text(data = label, aes(label = label))+
+      facet_wrap(~Chemical,ncol = 3)+
+      ggtitle(label =  gn,subtitle = des[strsplit(gn,"\\.")[[1]][1],]$ShortDescription)+
+      theme_bw()+
+      NoLegend()
+  } else {
+    data = data.frame("log2rpm" = seurat.Be@assays$RNA@data[gn,],"Chemical" = seurat.Be$Chemical, "Temperature" = seurat.Be$Temperature)
+    g = ggplot(data, aes(x = Temperature,y = log2rpm, fill = Chemical))+
+      geom_violin(aes(group = Temperature))+
+      geom_jitter()+
+      geom_smooth(color = "magenta",se = F)+
+      facet_wrap(~Chemical,ncol = 3)+
+      ggtitle(label =  gn,subtitle = des[strsplit(gn,"\\.")[[1]][1],]$ShortDescription)+
+      theme_bw()+
+      NoLegend()
+  }
+  print(g)
+}
+dev.off()
+
+
+# 
+cors.Tra = matrix(0,nrow = ncol(seurat.Tra@assays$RNA@data), ncol = ncol(seurat.Tra@assays$RNA@data))
+for(a in 1:ncol(seurat.Tra@assays$RNA@data)){
+  for(b in 1:ncol(seurat.Tra@assays$RNA@data)){
+    cors.Tra[a,b] = cor(seurat.Tra@assays$RNA@data[,a],seurat.Tra@assays$RNA@data[,b])
+  }
+}
+
+cors.Be = matrix(0,nrow = ncol(seurat.Be@assays$RNA@data), ncol = ncol(seurat.Be@assays$RNA@data))
+for(a in 1:ncol(seurat.Be@assays$RNA@data)){
+  for(b in 1:ncol(seurat.Be@assays$RNA@data)){
+    cors.Be[a,b] = cor(seurat.Be@assays$RNA@data[,a],seurat.Be@assays$RNA@data[,b])
+  }
+}
+
+########## Heatmap
+library(ggplot2)
+library(reshape2)
+pdf("Cor-Heatmap.pdf")
+data = melt(cors.Tra)
+g = ggplot(data, aes(x = Var1, y = Var2, fill = value))+
+  geom_tile()+
+  scale_fill_gradientn("value", colours = c("white","yellow","orange","red","black"), na.value = "white")+
+  geom_hline(yintercept = seq(0,1056,96),color = "white")+
+  geom_vline(xintercept = seq(0,1056,96),color = "white")+
+  theme_bw()+
+  theme(axis.text.x  = element_blank(),axis.text.y  = element_blank(),axis.title.x = element_blank(),axis.title.y = element_blank())+
+  ggtitle("Tradict")
+print(g)
+data = melt(cors.Be)
+g = ggplot(data, aes(x = Var1, y = Var2, fill = value))+
+  geom_tile()+
+  scale_fill_gradientn("value", colours =  c("white","yellow","orange","red","black"), na.value = "white")+
+  geom_hline(yintercept = seq(0,1056,96),color = "white")+
+  geom_vline(xintercept = seq(0,1056,96),color = "white")+
+  theme_bw()+
+  theme(axis.text.x  = element_blank(),axis.text.y  = element_blank(),axis.title.x = element_blank(),axis.title.y = element_blank())+
+  ggtitle("Betsuyaku")
+print(g)
+dev.off()
+
+########## vlmplot
+library(ggbeeswarm)
+library(patchwork)
+library(dplyr)
+pdf("Cor-vlnplot.pdf",width = 16,height = 6)
+cors.Tra.vln = NULL
+for(t in seq(10,30,2)){
+  tmp = subset(seurat.Tra,subset = Temperature==t)
+  seurat.cont = subset(tmp, subset = Chemical == "EtOH")
+  seurat.JA = subset(tmp, subset = Chemical == "JA")
+  seurat.SA = subset(tmp, subset = Chemical == "SA")
+  ave.cont = apply(seurat.cont@assays$RNA@data, 1, mean)
+  cors = NULL
+  for(i in 1:32){
+    cors = c(cors,cor(ave.cont, seurat.cont@assays$RNA@data[,i]))
+    cors = c(cors,cor(ave.cont, seurat.JA@assays$RNA@data[,i]))
+    cors = c(cors,cor(ave.cont, seurat.SA@assays$RNA@data[,i]))
+  }
+  tmp = data.frame("temperature" = t, "chemical" = rep(c("EtOH","JA","SA"),32),"cors" = cors)
+  cors.Tra.vln = rbind(cors.Tra.vln,tmp) 
+}
+g1 = ggplot(cors.Tra.vln, aes(x = chemical, y = cors))+
+  geom_boxplot(aes(fill = chemical))+
+  geom_beeswarm()+
+  facet_wrap(~temperature,nrow = 1)+
+  ggtitle("Tradict")+
+  theme_bw()
+ave = cors.Tra.vln %>%
+  group_by(temperature, chemical) %>%
+  summarise(mean= mean(cors))
+g11 = ggplot(cors.Tra.vln,aes(x = temperature, y = cors, fill = chemical))+
+  geom_violin(aes(group = temperature))+
+  # geom_beeswarm()+
+  geom_smooth(data = ave, aes(y = mean),se = F,color = "black")+
+  facet_wrap(~chemical, ncol = 3)+
+  ggtitle("Tradict")+
+  scale_x_continuous(breaks=seq(10,30,2))+
+  NoLegend()+
+  theme_bw()
+print(g11)
+
+cors.Tra.vln = NULL
+t = 22
+tmp = subset(seurat.Tra,subset = Temperature==t)
+seurat.cont = subset(tmp, subset = Chemical == "EtOH")
+ave.cont = apply(seurat.cont@assays$RNA@data, 1, mean)
+for(t in seq(10,30,2)){
+  tmp = subset(seurat.Tra,subset = Temperature==t)
+  seurat.cont = subset(tmp, subset = Chemical == "EtOH")
+  seurat.JA = subset(tmp, subset = Chemical == "JA")
+  seurat.SA = subset(tmp, subset = Chemical == "SA")
+  cors = NULL
+  for(i in 1:32){
+    cors = c(cors,cor(ave.cont, seurat.cont@assays$RNA@data[,i]))
+    cors = c(cors,cor(ave.cont, seurat.JA@assays$RNA@data[,i]))
+    cors = c(cors,cor(ave.cont, seurat.SA@assays$RNA@data[,i]))
+  }
+  tmp = data.frame("temperature" = t, "chemical" = rep(c("EtOH","JA","SA"),32),"cors" = cors)
+  cors.Tra.vln = rbind(cors.Tra.vln,tmp) 
+}
+g2 = ggplot(cors.Tra.vln, aes(x = chemical, y = cors))+
+  geom_boxplot(aes(fill = chemical))+
+  geom_beeswarm()+
+  facet_wrap(~temperature,nrow = 1)+
+  ggtitle("Tradict")+
+  theme_bw()
+g = g1 + g2 + plot_layout(ncol = 1)
+print(g)
+
+cors.Be.vln = NULL
+for(t in seq(10,30,2)){
+  tmp = subset(seurat.Be,subset = Temperature==t)
+  seurat.cont = subset(tmp, subset = Chemical == "EtOH")
+  seurat.JA = subset(tmp, subset = Chemical == "JA")
+  seurat.SA = subset(tmp, subset = Chemical == "SA")
+  ave.cont = apply(seurat.cont@assays$RNA@data, 1, mean)
+  cors = NULL
+  for(i in 1:32){
+    cors = c(cors,cor(ave.cont, seurat.cont@assays$RNA@data[,i]))
+    cors = c(cors,cor(ave.cont, seurat.JA@assays$RNA@data[,i]))
+    cors = c(cors,cor(ave.cont, seurat.SA@assays$RNA@data[,i]))
+  }
+  tmp = data.frame("temperature" = t, "chemical" = rep(c("EtOH","JA","SA"),32),"cors" = cors)
+  cors.Be.vln = rbind(cors.Be.vln,tmp) 
+}
+g1 = ggplot(cors.Be.vln, aes(x = chemical, y = cors))+
+  geom_boxplot(aes(fill = chemical))+
+  geom_beeswarm()+
+  facet_wrap(~temperature,nrow = 1)+
+  ggtitle("Betsuyaku")+
+  theme_bw()
+
+ave = cors.Be.vln %>%
+  group_by(temperature, chemical) %>%
+  summarise(mean= mean(cors))
+g31 = ggplot(cors.Be.vln,aes(x = temperature, y = cors, fill = chemical))+
+  geom_violin(aes(group = temperature))+
+  # geom_beeswarm()+
+  geom_smooth(data = ave, aes(y = mean),se = F,color = "black")+
+  facet_wrap(~chemical, ncol = 3)+
+  ggtitle("Betsuyaku")+
+  scale_x_continuous(breaks=seq(10,30,2))+
+  NoLegend()+
+  theme_bw()
+
+print(g31)
+
+cors.Be.vln = NULL
+t = 22
+tmp = subset(seurat.Be,subset = Temperature==t)
+seurat.cont = subset(tmp, subset = Chemical == "EtOH")
+ave.cont = apply(seurat.cont@assays$RNA@data, 1, mean)
+for(t in seq(10,30,2)){
+  tmp = subset(seurat.Be,subset = Temperature==t)
+  seurat.cont = subset(tmp, subset = Chemical == "EtOH")
+  seurat.JA = subset(tmp, subset = Chemical == "JA")
+  seurat.SA = subset(tmp, subset = Chemical == "SA")
+  cors = NULL
+  for(i in 1:32){
+    cors = c(cors,cor(ave.cont, seurat.cont@assays$RNA@data[,i]))
+    cors = c(cors,cor(ave.cont, seurat.JA@assays$RNA@data[,i]))
+    cors = c(cors,cor(ave.cont, seurat.SA@assays$RNA@data[,i]))
+  }
+  tmp = data.frame("temperature" = t, "chemical" = rep(c("EtOH","JA","SA"),32),"cors" = cors)
+  cors.Be.vln = rbind(cors.Be.vln,tmp) 
+}
+g2 = ggplot(cors.Be.vln, aes(x = chemical, y = cors))+
+  geom_boxplot(aes(fill = chemical))+
+  geom_beeswarm()+
+  facet_wrap(~temperature,nrow = 1)+
+  ggtitle("Betsuyaku")+
+  theme_bw()
+
+g = g1 + g2 + plot_layout(ncol = 1)
+print(g)
+dev.off()
+
+library(multcomp)
+gn = "AT3G45140.2" # c("AT3G50480.1","AT5G64040.1","AT2G14610.1","AT1G75690")
+ex = seurat.Tra@assays$RNA@data[gn,]
+group = sprintf("%s-%s",seurat.Tra@meta.data$Chemical,seurat.Tra@meta.data$Temperature)
+data = data.frame("GeneName" = gn,"ex" = ex, "group" = group)
+data = data[!is.na(data$ex),]
+data$group = factor(data$group)
+res= aov(ex~group,data = data)
+tuk=glht(res,linfct=mcp(group="Tukey"))
+cld = cld(tuk, level = 0.05, decreasing = TRUE)
+cld$mcletters
+write.csv(cld$mcletters$Letters,file = sprintf("%s-tuk.csv",gn))
+
 
